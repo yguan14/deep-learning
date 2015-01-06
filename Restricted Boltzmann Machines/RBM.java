@@ -2,7 +2,7 @@
     > File Name: RBM.java 
     > Author: SongLee   
     > E-mail: lisong.shine@qq.com   
-    > Created Time: 2014年1月5日 星期五 11时15分50秒   
+    > Created Time: Jan 4th, 2015 Sunday 11:15:50   
     > Personal Blog: http://songlee24.github.com   
  ************************************************************************/ 
 package com.test.rbm;
@@ -48,12 +48,12 @@ public class RBM {
 			for(int j=0; j<m; ++j)
 				W[i][j] = uniform(-x, x);
 		
-		/* initialize v_bias randomly */
+		/* initialize v_bias */
 		v_bias = new double[n];
 		for(int i=0; i<n; ++i)
 			v_bias[i] = 0;
 		
-		/* initialize h_bias randomly */
+		/* initialize h_bias */
 		h_bias = new double[m];
 		for(int j=0; j<m; ++j)
 			h_bias[j] = 0;
@@ -63,20 +63,44 @@ public class RBM {
 	/**
 	 * k-step contrastive divergence
 	 */
-	public void cd(int[] v_state, double learning_rate, int k)
+	public void cd(int[] v1, double lr, int k)
 	{
-		int[] sample_h = new int[m];
-		int[] sample_v = new int[n];
+		int[] sample_h1 = new int[m];
+		int[] sample_v2 = new int[n];
+		int[] sample_h2 = new int[m];
+		double[] probability_h1 = new double[m];
+		double[] probability_v2 = new double[n];
+		double[] probability_h2 = new double[m];
 		
-		sample_h_given_v(v_state, sample_h);
-		sample_v_given_h(sample_h, sample_v);
+		sample_h_given_v(v1, sample_h1, probability_h1);
+		
+		for(int step=0; step<k; ++step) {
+			if(step == 0) {
+				sample_v_given_h(sample_h1, sample_v2, probability_v2);
+				sample_h_given_v(sample_v2, sample_h2, probability_h2);
+			} else {
+				sample_v_given_h(sample_h2, sample_v2, probability_v2);
+				sample_h_given_v(sample_v2, sample_h2, probability_h2);
+			}
+		}
+		
+		/* update the weights and biases */
+		for(int j=0; j<m; ++j) {
+			for(int i=0; i<n; ++i) {
+				W[i][j] += lr*(probability_h1[j]*v1[i]-probability_h2[j]*sample_v2[i]);
+			}
+			h_bias[j] += lr*(probability_h1[j]-probability_h2[j]);
+		}
+		
+		for(int i=0; i<n; ++i)
+			v_bias[i] += lr*(v1[i]-sample_v2[i]);
 	}
 	
 	
 	/**
 	 * Updating the hidden states Given visible states
 	 */
-	public void sample_h_given_v(int[] v, int[] sample) {
+	public void sample_h_given_v(int[] v, int[] sample, double[] p) {
 		for(int j=0; j<m; ++j) {			
 			double sum = 0.0;
 			for(int i=0; i<n; ++i) {
@@ -85,6 +109,7 @@ public class RBM {
 			sum += h_bias[j];
 			/* hidden unit j is set to 1 with the probability */
 			double probability = sigmoid(sum);
+			p[j] = probability;
 			sample[j] = generateBinary(probability);
 		}
 	}
@@ -93,7 +118,7 @@ public class RBM {
 	/**
 	 * Updating the visible states Given hidden states
 	 */
-	public void sample_v_given_h(int[] h, int[] sample) {
+	public void sample_v_given_h(int[] h, int[] sample, double[] p) {
 		for(int i=0; i<n; ++i) {			
 			double sum = 0.0;
 			for(int j=0; j<m; ++j) {
@@ -102,6 +127,7 @@ public class RBM {
 			sum += v_bias[i];
 			/* visible unit i is set to 1 with the probability */
 			double probability = sigmoid(sum);
+			p[i] = probability;
 			sample[i] = generateBinary(probability);
 		}
 	}
@@ -138,8 +164,33 @@ public class RBM {
 	 * The entrance of the application
 	 */
 	public static void main(String[] args) {
-		int[] training_data = {1, 1, 1, 0, 0, 0};
-		RBM rbm = new RBM(2, 6, 4);
-		rbm.cd(training_data, 0.1, 1);
+		// training data
+		int[][] train_data = {
+				{1, 1, 1, 0, 0, 0},
+				{1, 0, 1, 0, 0, 0},
+				{1, 1, 1, 0, 0, 0},
+				{0, 0, 1, 1, 1, 0},
+				{0, 0, 1, 0, 1, 0},
+				{0, 0, 1, 1, 1, 0}
+		};
+		
+		double learning_rate = 0.1;
+		int training_epoch = 1000; 
+		int round = 2;
+		int n = 6;
+		int m = 4;
+		int k = 1;
+		RBM rbm = new RBM(round, n, m);
+		
+		// train
+		for(int i=0; i<training_epoch; ++i)
+			for(int j=0; j<6; ++j)
+				rbm.cd(train_data[j], learning_rate, k);
+		
+		// test data
+		int[][] test_data = {
+			{1, 1, 0, 0, 0, 0},
+			{0, 0, 0, 1, 1, 0}
+		};
 	}
 }
