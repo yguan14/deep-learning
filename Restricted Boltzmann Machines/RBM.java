@@ -84,7 +84,7 @@ public class RBM {
 		/* update the weights and biases */
 		for(int j=0; j<m; ++j) {
 			for(int i=0; i<n; ++i) {
-				W[i][j] += lr*(probability_h1[j]*v1[i]-probability_h2[j]*sample_v2[i]);
+				W[i][j] += lr*(probability_h1[j]*v1[i]-probability_h2[j]*probability_v2[i]);
 			}
 			h_bias[j] += lr*(probability_h1[j]-probability_h2[j]);
 		}
