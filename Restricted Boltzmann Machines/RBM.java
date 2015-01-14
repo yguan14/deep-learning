@@ -183,6 +183,25 @@ public class RBM {
 		double r = random.nextDouble();
 		return r<p ? 1 : 0;
 	}
+
+    public static double log1pExp(x) {
+	if ( x <= -37)
+	    {
+		return Math.exp(x);
+	    }
+	else if ( x <= 18)
+	    {
+		return Math.log1p(Math.exp(x));
+	    }
+	else if ( x <= 33.3)
+	    {
+		return x + Math.exp(-x);
+	    }
+	else
+	    {
+		return x;
+	    }
+    }
 	
 	
 	/**
